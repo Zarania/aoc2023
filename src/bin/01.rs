@@ -6,15 +6,17 @@ pub fn part_one(input: &str) -> Option<u32> {
             .lines()
             .map(|line| {
                 let first = line
-                    .chars()
-                    .find(|c| c.is_ascii_digit())
-                    .map(|c| c.to_digit(10).unwrap())
+                    .as_bytes()
+                    .iter()
+                    .find(|&&c| c >= b'0' && c <= b'9')
+                    .map(|c| *c as u32 - 48)
                     .unwrap();
                 let last = line
-                    .chars()
+                    .as_bytes()
+                    .iter()
                     .rev()
-                    .find(|c| c.is_ascii_digit())
-                    .map(|c| c.to_digit(10).unwrap())
+                    .find(|&&c| c >= b'0' && c <= b'9')
+                    .map(|c| *c as u32 - 48)
                     .unwrap();
                 first * 10 + last
             })
