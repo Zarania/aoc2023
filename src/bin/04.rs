@@ -57,11 +57,9 @@ pub fn part_two(input: &str) -> Option<u32> {
     for (line_index, line) in input.lines().enumerate() {
         let mut game = line.chars();
         let _ = game.advance_by(colon_position);
-        
-        let mut numbers = HashSet::with_capacity_and_hasher(
-            10,
-            BuildHasherDefault::<FxHasher>::default(),
-        );
+
+        let mut numbers =
+            HashSet::with_capacity_and_hasher(10, BuildHasherDefault::<FxHasher>::default());
         let mut winners = true;
         let mut count = 0;
 
@@ -73,13 +71,13 @@ pub fn part_two(input: &str) -> Option<u32> {
                     if value == 0 {
                         continue;
                     }
-                    
+
                     if winners {
                         numbers.insert(value);
                     } else if numbers.contains(&value) {
                         count += 1;
                     }
-                    
+
                     value = 0;
                 }
                 _ => value = value * 10 + c.to_digit(10).unwrap(),

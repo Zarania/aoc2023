@@ -4,16 +4,15 @@ advent_of_code::solution!(1);
 pub fn part_one(input: &str) -> Option<u32> {
     Some(
         input
-            .lines()
+            .as_bytes()
+            .split(|b| b == &b'\n')
             .map(|line| {
                 let first = line
-                    .as_bytes()
                     .iter()
                     .find(|&&c| c >= b'0' && c <= b'9')
                     .map(|c| *c as u32 - 48)
                     .unwrap();
                 let last = line
-                    .as_bytes()
                     .iter()
                     .rev()
                     .find(|&&c| c >= b'0' && c <= b'9')
@@ -25,62 +24,30 @@ pub fn part_one(input: &str) -> Option<u32> {
     )
 }
 
-const NUMBERS: [&str; 9] = [
-    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+const NUMBERS: [&[u8]; 9] = [
+    b"one", b"two", b"three", b"four", b"five", b"six", b"seven", b"eight", b"nine",
 ];
-fn digit_start(input: &str) -> Option<u32> {
-    NUMBERS
-        .iter()
-        .position(|&n| input.starts_with(n))
-        .map(|p| p as u32 + 1)
+
+#[inline(always)]
+fn number(line: &[u8], i: usize) -> Option<u32> {
+    line[i]
+        .is_ascii_digit()
+        .then_some((line[i] - b'0') as u32)
+        .or(NUMBERS
+            .iter()
+            .enumerate()
+            .find(|(_, n)| line[i..].starts_with(n))
+            .map(|(n, _)| n as u32 + 1))
 }
 
-fn digit_end(input: &str) -> Option<u32> {
-    NUMBERS
-        .iter()
-        .position(|&n| input.ends_with(n))
-        .map(|p| p as u32 + 1)
-}
 pub fn part_two(input: &str) -> Option<u32> {
     Some(
         input
-            .lines()
+            .as_bytes()
+            .split(|b| b == &b'\n')
             .map(|line| {
-                let first;
-                let last;
-
-                let mut chars = line.chars();
-
-                loop {
-                    if let Some(n) = digit_start(chars.as_str()) {
-                        first = n;
-                        break;
-                    }
-
-                    if let Some(c) = chars.next() {
-                        if c.is_ascii_digit() {
-                            first = c.to_digit(10).unwrap();
-                            break;
-                        }
-                    }
-                }
-
-                chars = line.chars();
-                loop {
-                    if let Some(n) = digit_end(chars.as_str()) {
-                        last = n;
-                        break;
-                    }
-
-                    if let Some(c) = chars.next_back() {
-                        if c.is_ascii_digit() {
-                            last = c.to_digit(10).unwrap();
-                            break;
-                        }
-                    }
-                }
-
-                first * 10 + last
+                (0..line.len()).find_map(|i| number(line, i)).unwrap() * 10
+                    + (0..line.len()).rev().find_map(|i| number(line, i)).unwrap()
             })
             .sum(),
     )

@@ -1,151 +1,73 @@
+use atoi::atoi;
 advent_of_code::solution!(3);
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let mut symbols = Vec::with_capacity(input.lines().size_hint().0);
-    let mut numbers = Vec::new();
-
-    for (y, line) in input.lines().enumerate() {
-        let mut value = 0u32;
-        let mut start = 0u32;
-        let mut symbol_row = Vec::new();
-        for (x, char) in line.chars().enumerate() {
-            if char == '.' {
-                if value > 0 {
-                    numbers.push((start, x as u32 - 1, y as u32, value));
-                    value = 0;
-                }
-                continue;
-            }
-
-            if char.is_ascii_digit() {
-                if value == 0 {
-                    start = x as u32;
-                }
-                value *= 10;
-                value += char.to_digit(10).unwrap();
-                continue;
-            }
-
-            if value > 0 {
-                numbers.push((start, x as u32 - 1, y as u32, value));
-                value = 0;
-            }
-
-            symbol_row.push(x as u32);
-        }
-
-        if value > 0 {
-            numbers.push((
-                start,
-                start + (0..).take_while(|i| 10u32.pow(*i) <= start).count() as u32 - 1,
-                y as u32,
-                value,
-            ));
-        }
-
-        symbols.push(symbol_row);
-    }
+    let grid = input.as_bytes();
+    let width = grid.iter().position(|b| b == &b'\n').unwrap() as isize;
 
     Some(
-        numbers
-            .iter()
-            .filter(|(start, end, row, _)| {
-                let row_start = if *row == 0 { 0 } else { *row as usize - 1 };
-                let row_end = if *row == (symbols.len() as u32 - 1) {
-                    symbols.len() - 1
-                } else {
-                    *row as usize + 1
-                };
-
-                for symbol_row in symbols.iter().take(row_end + 1).skip(row_start) {
-                    for symbol in symbol_row {
-                        if &(symbol + 1) >= start && &(symbol - 1) <= end {
-                            return true;
-                        }
-                    }
-                }
-                false
+        (0..grid.len())
+            .filter(|i| {
+                grid[*i].is_ascii_digit()
+                    && !grid
+                        .get(i.wrapping_sub(1))
+                        .map_or(false, u8::is_ascii_digit)
             })
-            .map(|(_, _, _, n)| n)
-            .sum(),
+            .map(|i| {
+                let size = (i + 1..).position(|i| !grid[i].is_ascii_digit()).unwrap() + 1;
+                (i, size as _, atoi::<u32>(&grid[i..i + size]).unwrap())
+            })
+            .filter(|(i, size, _)| {
+                //row above
+                (-width - 2..-width + *size)
+                    //left and right
+                    .chain([-1, *size])
+                    //row below
+                    .chain(width..width + *size + 2)
+                    .any(|j| {
+                        grid.get((*i as isize + j) as usize)
+                            .map_or(false, |b| b != &b'.' && b.is_ascii_punctuation())
+                    })
+            })
+            .map(|(_, _, n)| n)
+            .sum::<u32>(),
     )
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let mut symbols = Vec::with_capacity(input.lines().size_hint().0);
-    let mut numbers = Vec::with_capacity(input.lines().size_hint().0);
-
-    for line in input.lines() {
-        let mut value = 0u32;
-        let mut start = 0u32;
-        let mut symbol_row = Vec::new();
-        let mut numbers_row = Vec::new();
-        for (x, char) in line.chars().enumerate() {
-            if char.is_ascii_digit() {
-                if value == 0 {
-                    start = x as u32;
-                }
-                value *= 10;
-                value += char.to_digit(10).unwrap();
-                continue;
-            }
-
-            if value > 0 {
-                numbers_row.push((start, x as u32 - 1, value));
-                value = 0;
-            }
-
-            if char == '*' {
-                symbol_row.push(x as u32);
-                continue;
-            }
-        }
-
-        if value > 0 {
-            numbers_row.push((
-                start,
-                start + (0..).take_while(|i| 10u32.pow(*i) <= start).count() as u32 - 1,
-                value,
-            ));
-        }
-
-        numbers.push(numbers_row);
-        symbols.push(symbol_row);
-    }
+    let grid = input.as_bytes();
+    let width = grid.iter().position(|b| b == &b'\n').unwrap() as isize;
+    let mut ajacent: Vec<usize> = Vec::with_capacity(9);
 
     Some(
-        symbols
-            .iter()
-            .enumerate()
-            .map(|(y, gears)| {
-                gears
-                    .iter()
-                    .map(|&x| {
-                        let row_start = if y == 0 { 0 } else { y - 1 };
-                        let row_end = if y == (numbers.len() - 1) {
-                            numbers.len() - 1
-                        } else {
-                            y + 1
-                        };
+        (0..grid.len())
+            .filter(|i| grid[*i] == b'*')
+            .filter_map(|i| {
+                ajacent.clear();
 
-                        let mut first = 0;
-
-                        for number_row in numbers.iter().take(row_end + 1).skip(row_start) {
-                            for (start, end, value) in number_row {
-                                if &(x + 1) >= start && &(x - 1) <= end {
-                                    if first == 0 {
-                                        first = *value;
-                                        continue;
-                                    }
-
-                                    return first * value;
-                                }
-                            }
-                        }
-
-                        0
-                    })
-                    .sum::<u32>()
+                ajacent.extend(
+                    //above
+                    (-width - 2..=-width)
+                        //left, right
+                        .chain([-1, 1])
+                        //below
+                        .chain(width..=width + 2)
+                        .map(|offset| (i as isize + offset) as usize)
+                        .filter(|offset| grid[*offset].is_ascii_digit())
+                        .filter_map(|offset| {
+                            (offset.saturating_sub(2)..=offset)
+                                .rev()
+                                .take_while(|n| grid[*n].is_ascii_digit())
+                                .last()
+                        }),
+                );
+                ajacent.dedup();
+                (ajacent.len() == 2).then(|| {
+                    ajacent
+                        .iter()
+                        .map(|i| atoi::<u32>(&grid[*i..i + 3]).unwrap())
+                        .product::<u32>()
+                })
             })
             .sum(),
     )
