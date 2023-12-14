@@ -6,7 +6,7 @@ advent_of_code::solution!(5);
 pub fn part_one(input: &str) -> Option<u64> {
     let (seeds, transforms) = input.split_once("\n\n").unwrap();
     let mut seeds = seeds
-        .split(" ")
+        .split(' ')
         .skip(1)
         .filter_map(|s| s.parse::<u64>().ok())
         .collect::<Vec<_>>();
@@ -43,7 +43,7 @@ pub fn part_one(input: &str) -> Option<u64> {
 pub fn part_two(input: &str) -> Option<u64> {
     let (seeds, transforms) = input.split_once("\n\n").unwrap();
     let mut seeds = seeds
-        .split(" ")
+        .split(' ')
         .skip(1)
         .filter_map(|s| s.parse::<u64>().ok())
         .array_chunks::<2>()
