@@ -11,9 +11,12 @@ jobs:
         name: CI
         steps:
             - uses: actions/checkout@v3
+
             - uses: actions-rs/toolchain@v1
               with:
                 toolchain: nightly
+                override: true
+            
             - name: Set up cargo cache
               uses: actions/cache@v3
               continue-on-error: false
@@ -26,6 +29,7 @@ jobs:
                     target/
                 key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
                 restore-keys: ${{ runner.os }}-cargo-
+            
             - name: cargo test
               run: cargo test
             # uncomment to enable clippy linter
