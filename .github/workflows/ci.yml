@@ -11,11 +11,13 @@ jobs:
         name: CI
         steps:
             - uses: actions/checkout@v3
+            - uses: actions-rs/toolchain@v1
+              with:
+                toolchain: nightly
             - name: Set up cargo cache
               uses: actions/cache@v3
               continue-on-error: false
               with:
-                toolchain: nightly
                 path: |
                     ~/.cargo/bin/
                     ~/.cargo/registry/index/
