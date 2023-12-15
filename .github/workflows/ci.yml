@@ -15,6 +15,7 @@ jobs:
               uses: actions/cache@v3
               continue-on-error: false
               with:
+                toolchain: nightly
                 path: |
                     ~/.cargo/bin/
                     ~/.cargo/registry/index/
