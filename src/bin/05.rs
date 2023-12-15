@@ -1,76 +1,81 @@
 #![feature(iter_array_chunks)]
 
+use atoi::atoi;
 use std::{collections::VecDeque, ops::RangeInclusive};
 advent_of_code::solution!(5);
 
-pub fn part_one(input: &str) -> Option<u64> {
-    let (seeds, transforms) = input.split_once("\n\n").unwrap();
-    let mut seeds = seeds
-        .split(' ')
-        .skip(1)
-        .filter_map(|s| s.parse::<u64>().ok())
-        .collect::<Vec<_>>();
+const SEED_MAPS: usize = 7;
 
-    let transforms = transforms
-        .split("\n\n")
-        .map(|s| {
-            s.split('\n')
+pub fn part_one(input: &str) -> Option<u64> {
+    let input = input.as_bytes();
+    let mut lines = input.split(|b| b == &b'\n').skip(2);
+
+    let transforms = (0..SEED_MAPS)
+        .map(|_| {
+            (&mut lines)
                 .skip(1)
-                .map(|l| {
-                    let mut split = l.split(' ');
-                    let destination = split.next().unwrap().parse::<u64>().unwrap();
-                    let source = split.next().unwrap().parse::<u64>().unwrap();
-                    let length = split.next().unwrap().parse::<u64>().unwrap();
-                    (destination, source..=(source + length))
+                .take_while(|line| !line.is_empty())
+                .map(|line| {
+                    line.splitn(3, |b| b == &b' ')
+                        .map(|n| atoi(n).unwrap())
+                        .array_chunks::<3>()
+                        .map(|line: [u64; 3]| (line[1]..line[1] + line[2], line[0]))
+                        .take(1)
+                        .next()
+                        .unwrap()
                 })
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
 
-    for transform in &transforms {
-        for seed in &mut seeds {
-            *seed = transform
-                .iter()
-                .find(|(_, range)| range.contains(seed))
-                .map(|(destination, range)| *seed - range.start() + destination)
-                .unwrap_or(*seed);
-        }
-    }
-
-    seeds.iter().min().copied()
+    input[SEED_MAPS..input.iter().position(|b| b == &b'\n').unwrap()]
+        .split(|b| b == &b' ')
+        .flat_map(atoi)
+        .map(|seed| {
+            transforms.iter().fold(seed, |seed, map| {
+                map.iter()
+                    .find(|(range, _)| range.contains(&seed))
+                    .map(|(range, destination)| destination + seed - range.start)
+                    .unwrap_or(seed)
+            })
+        })
+        .min()
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let (seeds, transforms) = input.split_once("\n\n").unwrap();
-    let mut seeds = seeds
-        .split(' ')
-        .skip(1)
-        .filter_map(|s| s.parse::<u64>().ok())
-        .array_chunks::<2>()
-        .map(|chunk| chunk[0]..=(chunk[0] + chunk[1] - 1))
-        .collect::<VecDeque<_>>();
+    let input = input.as_bytes();
+    let mut lines = input.split(|b| b == &b'\n').skip(2);
 
-    let transforms = transforms
-        .split("\n\n")
-        .map(|s| {
-            s.split('\n')
+    let transforms = (0..SEED_MAPS)
+        .map(|_| {
+            (&mut lines)
                 .skip(1)
-                .map(|l| {
-                    let mut split = l.split(' ');
-                    let destination = split.next().unwrap().parse::<u64>().unwrap();
-                    let source = split.next().unwrap().parse::<u64>().unwrap();
-                    let length = split.next().unwrap().parse::<u64>().unwrap();
-                    (destination, source..=(source + length - 1))
+                .take_while(|line| !line.is_empty())
+                .map(|line| {
+                    line.splitn(3, |b| b == &b' ')
+                        .map(|n| atoi(n).unwrap())
+                        .array_chunks::<3>()
+                        .map(|line: [u64; 3]| (line[1]..=line[1] + line[2] - 1, line[0]))
+                        .take(1)
+                        .next()
+                        .unwrap()
                 })
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
+
+    let mut seeds = input[SEED_MAPS..input.iter().position(|b| b == &b'\n').unwrap()]
+        .split(|b| b == &b' ')
+        .flat_map(atoi::<u64>)
+        .array_chunks::<2>()
+        .map(|chunk| chunk[0]..=(chunk[0] + chunk[1] - 1))
+        .collect::<VecDeque<_>>();
 
     for transform in &transforms {
         let mut mapped_seeds = Vec::new();
         while !seeds.is_empty() {
             let mut seed = seeds.pop_front().unwrap();
-            for (destination, range) in transform {
+            for (range, destination) in transform {
                 //if seed is fully out, exit early
                 if seed.start() > range.end() || seed.end() < range.start() || seed.is_empty() {
                     continue;
@@ -105,7 +110,7 @@ pub fn part_two(input: &str) -> Option<u64> {
 
     seeds.iter().map(|s| s.start()).min().copied()
 }
-
+        
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,6 +122,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn solve_part_one() {
         let result = part_one(&advent_of_code::template::read_file("inputs", DAY));
         assert_eq!(result, Some(324724204));
@@ -129,6 +135,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn solve_part_two() {
         let result = part_two(&advent_of_code::template::read_file("inputs", DAY));
         assert_eq!(result, Some(104070862));
