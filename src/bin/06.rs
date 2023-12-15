@@ -1,3 +1,4 @@
+use atoi::atoi;
 advent_of_code::solution!(6);
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -21,13 +22,10 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut lines = input.lines();
-    let b = String::from_iter(lines.next().unwrap().split_ascii_whitespace().skip(1))
-        .parse::<u64>()
-        .unwrap();
-    let c = String::from_iter(lines.next().unwrap().split_ascii_whitespace().skip(1))
-        .parse::<u64>()
-        .unwrap();
+    let input = input.as_bytes();
+    let newline = input.iter().position(|b| b == &b'\n').unwrap();
+    let b = atoi::<u64>(&input[11..newline].iter().filter(|&b| b != &b' ').copied().collect::<Vec<_>>()).unwrap();
+    let c = atoi::<u64>(&input[newline + 12..].iter().filter(|&b| b != &b' ').copied().collect::<Vec<_>>()).unwrap();
 
     let root = ((b * b - 4 * c) as f64).sqrt();
     let min = ((-(b as f64) + root) / -2.0).floor() as u64 + 1;
