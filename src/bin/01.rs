@@ -10,13 +10,13 @@ pub fn part_one(input: &str) -> Option<u32> {
                 let first = line
                     .iter()
                     .find(|&&c| c >= b'0' && c <= b'9')
-                    .map(|c| *c as u32 - 48)
+                    .map(|c| (*c - b'0') as u32)
                     .unwrap();
                 let last = line
                     .iter()
                     .rev()
                     .find(|&&c| c >= b'0' && c <= b'9')
-                    .map(|c| *c as u32 - 48)
+                    .map(|c| (*c - b'0') as u32)
                     .unwrap();
                 first * 10 + last
             })
