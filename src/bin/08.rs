@@ -1,7 +1,4 @@
-use hashers::fx_hash::FxHasher;
 use std::cmp::{max, min};
-use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
 
 advent_of_code::solution!(8);
 
@@ -20,66 +17,69 @@ fn gcd(a: usize, b: usize) -> usize {
     }
 }
 
-fn cycle_length(
-    key: &str,
-    nodes: &HashMap<&str, [&str; 2], BuildHasherDefault<FxHasher>>,
-    steps: &str,
-    target: &str,
-) -> u32 {
-    let mut key = key;
-    steps
-        .chars()
-        .map(|s| match s {
-            'L' => 0,
-            'R' => 1,
-            _ => unreachable!(),
-        })
-        .cycle()
-        .enumerate()
-        .find(|&(_, step)| {
-            if key.ends_with(target) {
-                return true;
-            }
-
-            key = nodes[key][step];
-
-            false
-        })
-        .unwrap()
-        .0 as u32
+#[inline(always)]
+fn encode(slice: &[u8]) -> u32 {
+    ((slice[0] - b'A') as u32) << 10 | ((slice[1] - b'A') as u32) << 5 | ((slice[2] - b'A') as u32)
 }
 
-fn parse(input: &str) -> (&str, HashMap<&str, [&str; 2], BuildHasherDefault<FxHasher>>) {
-    let (steps, nodes) = input.split_once("\n\n").unwrap();
+fn cycle_length(directions: &[u8], start: u32, map: [u32; 27483]) -> Option<u32> {
+    directions
+        .iter()
+        .cycle()
+        .scan(start, |node, step| {
+            *node = if step == &b'L' {
+                map[*node as usize] & u16::MAX as u32
+            } else {
+                map[*node as usize] >> 16
+            };
 
-    let nodes = nodes
-        .lines()
-        .map(|l| {
-            let key = &l[..3];
-            let first = &l[7..10];
-            let second = &l[12..15];
-
-            (key, [first, second])
+            Some(*node & 0b11111 == (b'Z' - b'A') as u32)
         })
-        .collect::<HashMap<_, _, BuildHasherDefault<FxHasher>>>();
-    (steps, nodes)
+        .position(|node| node)
+        .map(|n| n as u32 + 1)
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let (steps, nodes) = parse(input);
+    let input = input.as_bytes();
+    let section_split = input.iter().position(|b| b == &b'\n').unwrap();
+    let mut map = [0u32; (26 << 10 | 26 << 5 | 26) + 1];
 
-    Some(cycle_length("AAA", &nodes, steps, "ZZZ"))
+    input[section_split + 2..]
+        .split(|b| b == &b'\n')
+        .for_each(|node| {
+            map[encode(&node[0..3]) as usize] = encode(&node[7..10]) | encode(&node[12..15]) << 16;
+        });
+
+    let directions = &input[0..section_split];
+
+    cycle_length(directions, encode(b"AAA"), map)
 }
 
 pub fn part_two(input: &str) -> Option<usize> {
-    let (steps, nodes) = parse(input);
+    let input = input.as_bytes();
+    let section_split = input.iter().position(|b| b == &b'\n').unwrap();
+    let mut map = [0u32; (26 << 10 | 26 << 5 | 26) + 1];
+    let mut starts = Vec::with_capacity(6);
+
+    input[section_split + 2..]
+        .split(|b| b == &b'\n')
+        .for_each(|node| {
+            map[encode(&node[0..3]) as usize] = encode(&node[7..10]) | encode(&node[12..15]) << 16;
+
+            if node[2] == b'A' {
+                starts.push(encode(&node[0..3]));
+            }
+        });
+
+    let directions = &input[0..section_split];
 
     Some(
-        nodes
-            .iter()
-            .filter(|(key, _)| key.ends_with('A'))
-            .map(|k| cycle_length(k.0, &nodes, steps, "Z") as usize)
-            .fold(1, |a, b| (a * b) / gcd(a, b)),
+        starts
+            .into_iter()
+            .filter_map(|node| {
+                cycle_length(directions, node, map)
+            })
+            .fold(1, |acc, x| acc * x as usize / gcd(acc, x as usize)),
     )
 }
 
